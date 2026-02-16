@@ -29,6 +29,15 @@ def _table_display(table: Table, max_items: int | None = None) -> str:
     return ", ".join(_row_to_display(r) for r in part) + ("..." if max_items and len(table) > max_items else "")
 
 
+def format_translations_display(table: Table) -> str:
+    """Zwraca tekst do wyświetlenia: każdy wiersz '  word: trans' lub '  word: (brak tłumaczenia)' w kolejności tablicy."""
+    lines = [
+        f"  {word}: {trans if trans else '(brak tłumaczenia)'}"
+        for word, trans in table
+    ]
+    return "\n".join(lines)
+
+
 def _parse_table_cell(cell: str) -> TableRow:
     cell = cell.strip()
     if "|" in cell:
@@ -287,8 +296,7 @@ def main() -> None:
                 if again == "Pokaż tłumaczenia" and current_table:
                     clearScreen()
                     print("Kolejność jak po wymieszaniu:\n")
-                    for word, trans in current_table:
-                        print(f"  {word}: {trans if trans else '(brak tłumaczenia)'}")
+                    print(format_translations_display(current_table))
                     input("\nEnter...")
             continue
         if choice == "Nowa tablica":

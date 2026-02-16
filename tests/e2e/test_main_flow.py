@@ -41,6 +41,7 @@ def test_main_save_and_exit(monkeypatch, backup_path):
     monkeypatch.setattr(NeoAnki, "clearScreen", lambda: None)
     monkeypatch.setattr("builtins.input", lambda _: None)
     monkeypatch.setattr(NeoAnki, "getInputTable", lambda: [("s1", ""), ("s2", "")])
+    monkeypatch.setattr(NeoAnki, "getShuffledTable", lambda t: t)
     monkeypatch.setattr(
         NeoAnki,
         "datetime",
@@ -63,3 +64,28 @@ def test_main_save_and_exit(monkeypatch, backup_path):
     assert len(backup) == 1
     key = next(iter(backup))
     assert backup[key] == [("s1", ""), ("s2", "")]
+
+
+def test_main_show_translations_displays_manual_only(capsys, monkeypatch, backup_path):
+    """Wymieszaj -> Pokaż tłumaczenia: na stdout są ręczne tłumaczenia i '(brak tłumaczenia)' w kolejności tablicy."""
+    monkeypatch.setattr(NeoAnki, "clearScreen", lambda: None)
+    monkeypatch.setattr("builtins.input", lambda _: None)
+    table_with_trans = [("słowo1", "trans1"), ("słowo2", ""), ("x", "iks")]
+    monkeypatch.setattr(NeoAnki, "getInputTable", lambda: table_with_trans)
+    monkeypatch.setattr(NeoAnki, "getShuffledTable", lambda t: t)
+    select_seq = [
+        "Wpisz tablicę",
+        "Wymieszaj",
+        "Pokaż tłumaczenia",
+        "Wróć do menu",
+        "Wyjście",
+    ]
+    monkeypatch.setattr(NeoAnki.questionary, "select", _make_select_mock(select_seq))
+
+    NeoAnki.main()
+
+    out = capsys.readouterr().out
+    assert "słowo1: trans1" in out
+    assert "słowo2: (brak tłumaczenia)" in out
+    assert "x: iks" in out
+    assert "Kolejność jak po wymieszaniu" in out
