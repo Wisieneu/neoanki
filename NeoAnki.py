@@ -1,7 +1,9 @@
 import random
 import os
 import json
+import subprocess
 import sys
+import tempfile
 from datetime import datetime
 
 import questionary
@@ -51,7 +53,7 @@ def backup_submenu(
     print()
     choice = questionary.select(
         "Backup:",
-        choices=["Wyciągnij tablicę", "Zapisz obecną", "Usuń nieużywane", "Wstecz"],
+        choices=["Wyciągnij tablicę", "Zapisz obecną", "Edytuj tablicę", "Usuń nieużywane", "Wstecz"],
     ).ask()
     if not choice or choice == "Wstecz":
         return current_table, current_name, used_boards
@@ -82,6 +84,37 @@ def backup_submenu(
             save_backup(backup)
             return current_table, name, used_boards
 
+    if choice == "Edytuj tablicę":
+        backup = load_backup()
+        if not backup:
+            clearScreen()
+            input("Brak zapisanych tablic. Enter...")
+            return current_table, current_name, used_boards
+        name = questionary.select("Którą tablicę edytować?", choices=list(backup.keys())).ask()
+        if not name:
+            return current_table, current_name, used_boards
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".txt", delete=False, encoding="utf-8"
+        ) as f:
+            f.write(", ".join(backup[name]))
+            path = f.name
+        try:
+            editor = os.environ.get("EDITOR", "notepad" if sys.platform == "win32" else "nano")
+            subprocess.run([editor, path], shell=(sys.platform == "win32"))
+            with open(path, "r", encoding="utf-8") as f:
+                raw = f.read()
+        finally:
+            os.unlink(path)
+        new_table = [w.strip() for w in raw.split(",") if w.strip()]
+        backup[name] = new_table
+        save_backup(backup)
+        if current_name == name:
+            current_table = new_table
+        if name in used_boards:
+            used_boards[name] = new_table
+        clearScreen()
+        input(f"Zapisano: {name}. Enter...")
+
     if choice == "Usuń nieużywane":
         backup = load_backup()
         used_names = set(used_boards.keys())
@@ -105,40 +138,45 @@ def backup_submenu(
     return current_table, current_name, used_boards
 
 
-clearScreen()
-start = questionary.select(
-    "Co chcesz zrobić?",
-    choices=["Wpisz tablicę", "Przejdź do menu"],
-).ask()
-current_table = getInputTable() if start == "Wpisz tablicę" else []
-current_name: str | None = None
-used_boards: dict[str, list[str]] = {}
-
-while True:
+def main() -> None:
     clearScreen()
-    choice = questionary.select(
-        "Wybierz:",
-        choices=["Wymieszaj", "Nowa tablica", "Backup", "Wyjście"],
+    start = questionary.select(
+        "Co chcesz zrobić?",
+        choices=["Wpisz tablicę", "Przejdź do menu"],
     ).ask()
-    if not choice or choice == "Wyjście":
-        exit()
-    if choice == "Wymieszaj":
-        while True:
-            current_table = getShuffledTable(current_table)
-            print(", ".join(current_table))
-            again = questionary.select(
-                "\nCo dalej?",
-                choices=["Wymieszaj ponownie", "Wróć do menu"],
-            ).ask()
-            if not again or again == "Wróć do menu":
-                break
-        continue
-    if choice == "Nowa tablica":
-        current_table = getInputTable()
-        current_name = None
-        continue
-    if choice == "Backup":
-        current_table, current_name, used_boards = backup_submenu(
-            current_table, current_name, used_boards
-        )
-        continue
+    current_table = getInputTable() if start == "Wpisz tablicę" else []
+    current_name: str | None = None
+    used_boards: dict[str, list[str]] = {}
+
+    while True:
+        clearScreen()
+        choice = questionary.select(
+            "Wybierz:",
+            choices=["Wymieszaj", "Nowa tablica", "Backup", "Wyjście"],
+        ).ask()
+        if not choice or choice == "Wyjście":
+            return
+        if choice == "Wymieszaj":
+            while True:
+                current_table = getShuffledTable(current_table)
+                print(", ".join(current_table))
+                again = questionary.select(
+                    "\nCo dalej?",
+                    choices=["Wymieszaj ponownie", "Wróć do menu"],
+                ).ask()
+                if not again or again == "Wróć do menu":
+                    break
+            continue
+        if choice == "Nowa tablica":
+            current_table = getInputTable()
+            current_name = None
+            continue
+        if choice == "Backup":
+            current_table, current_name, used_boards = backup_submenu(
+                current_table, current_name, used_boards
+            )
+            continue
+
+
+if __name__ == "__main__":
+    main()
