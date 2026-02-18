@@ -315,7 +315,7 @@ def main() -> None:
                         choices = [
                             questionary.Choice(title=_row_to_display(r), value=i)
                             for i, r in enumerate(current_table)
-                        ]
+                        ] + [questionary.Choice(title="Anuluj", value=None)]
                         to_remove = questionary.select("Który element usunąć?", choices=choices).ask()
                         if to_remove is not None:
                             current_table.pop(to_remove)
