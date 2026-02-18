@@ -35,6 +35,19 @@ def _table_display_words_only(table: Table, max_items: int | None = None) -> str
     return ", ".join(r[0] for r in part) + ("..." if max_items and len(table) > max_items else "")
 
 
+def _table_display_with_revealed(table: Table, revealed: int) -> str:
+    """Numerowana lista: pierwsze `revealed` z tłumaczeniem, reszta tylko word."""
+    if not table:
+        return "(pusta)"
+    width = len(str(len(table)))
+    lines = [
+        f"  {i + 1:>{width}}. " + (_row_to_display(r) if i < revealed else r[0])
+        for i, r in enumerate(table)
+    ]
+    header = "─" * (width + 4)
+    return f"  {header}\n" + "\n".join(lines) + f"\n  {header}"
+
+
 def format_translations_display(table: Table) -> str:
     """Zwraca tekst do wyświetlenia: każdy wiersz '  word: trans' lub '  word: (brak tłumaczenia)' w kolejności tablicy."""
     lines = [
@@ -151,12 +164,57 @@ def save_backup(boards: dict[str, Table]) -> None:
         raise
 
 
-def getInputTable() -> Table:
+def _confirm_table(table: Table) -> bool:
+    """Pokazuje tablicę i pyta o zatwierdzenie. Zwraca True jeśli użytkownik zatwierdza."""
+    if not table:
+        return False
+    clearScreen()
+    print("Tablica:\n")
+    print(_table_display_with_revealed(table, len(table)))
+    print()
+    return questionary.select("Zatwierdzić tablicę?", choices=["Tak", "Nie"]).ask() == "Tak"
+
+
+def getInputTableSingle() -> Table:
+    """Dodawanie słów pojedynczo (słowo + Enter). Pusty Enter = koniec. Na końcu zatwierdzenie."""
+    table: Table = []
+    while True:
+        clearScreen()
+        if table:
+            print(f"Liczba słów: {len(table)}\nDodaj puste słowo by zakończyć")
+            print(_table_display_with_revealed(table, len(table)))
+            print()
+        prompt = "Słowo|tłumaczenie (pusty Enter = koniec): "
+        line = input(prompt).strip()
+        if not line:
+            break
+        table.append(_parse_table_cell(line))
+    if not table:
+        return []
+    return table if _confirm_table(table) else []
+
+
+def getInputTableAllAtOnce() -> Table:
+    """Wszystkie elementy naraz (oddzielone przecinkami). Na końcu zatwierdzenie."""
     clearScreen()
     prompt = "Wpisz elementy (element|tłumaczenie oddzielone przecinkiem)\nPrzykład: slowo|tlumaczenie,slowo1|tlumaczenie1,slowo2,slowo3|tlum3\nTłumaczenia są opcjonalne\n"
     raw = input(prompt)
     table = [_parse_table_cell(cell) for cell in raw.split(",") if cell.strip()]
-    return table
+    return table if _confirm_table(table) else []
+
+
+def getInputTable() -> Table:
+    """Pyta o tryb (pojedynczo / wszystko naraz) i zwraca tablicę po zatwierdzeniu."""
+    clearScreen()
+    mode = questionary.select(
+        "Jak dodawać słowa?",
+        choices=["Pojedynczo (słowo po słowie)", "Wszystko naraz (oddzielone przecinkami)"],
+    ).ask()
+    if not mode:
+        return []
+    if mode == "Pojedynczo (słowo po słowie)":
+        return getInputTableSingle()
+    return getInputTableAllAtOnce()
 
 
 def clearScreen():
@@ -292,18 +350,23 @@ def main() -> None:
         if choice == "Wymieszaj":
             while True:
                 current_table = getShuffledTable(current_table)
+                revealed_count = 0
                 while True:
                     clearScreen()
-                    print(_table_display_words_only(current_table))
-                    again = questionary.select(
-                        "\nCo dalej?",
-                        choices=["Wymieszaj ponownie", "Pokaż tłumaczenia", "Usuń element", "Wróć do menu"],
-                    ).ask()
+                    print(_table_display_with_revealed(current_table, revealed_count))
+                    choices_list = ["Przetłumacz wszystko", "Wymieszaj ponownie", "Usuń element", "Wróć do menu"]
+                    if revealed_count < len(current_table):
+                        choices_list.insert(0, "Przetłumacz kolejne słowo")
+                    again = questionary.select("\nCo dalej?", choices=choices_list).ask()
                     if not again or again == "Wróć do menu":
                         break
                     if again == "Wymieszaj ponownie":
                         break
-                    if again == "Pokaż tłumaczenia" and current_table:
+                    if again == "Przetłumacz kolejne słowo":
+                        if revealed_count < len(current_table):
+                            revealed_count += 1
+                        continue
+                    if again == "Przetłumacz wszystko" and current_table:
                         clearScreen()
                         print("Kolejność jak po wymieszaniu:\n")
                         print(format_translations_display(current_table))
@@ -319,6 +382,7 @@ def main() -> None:
                         to_remove = questionary.select("Który element usunąć?", choices=choices).ask()
                         if to_remove is not None:
                             current_table.pop(to_remove)
+                            revealed_count = min(revealed_count, len(current_table))
                 if again == "Wróć do menu":
                     break
             continue
