@@ -286,18 +286,35 @@ def main() -> None:
         if choice == "Wymieszaj":
             while True:
                 current_table = getShuffledTable(current_table)
-                print(_table_display(current_table))
-                again = questionary.select(
-                    "\nCo dalej?",
-                    choices=["Wymieszaj ponownie", "Pokaż tłumaczenia", "Wróć do menu"],
-                ).ask()
-                if not again or again == "Wróć do menu":
-                    break
-                if again == "Pokaż tłumaczenia" and current_table:
+                while True:
                     clearScreen()
-                    print("Kolejność jak po wymieszaniu:\n")
-                    print(format_translations_display(current_table))
-                    input("\nEnter...")
+                    print(_table_display(current_table))
+                    again = questionary.select(
+                        "\nCo dalej?",
+                        choices=["Wymieszaj ponownie", "Pokaż tłumaczenia", "Usuń element", "Wróć do menu"],
+                    ).ask()
+                    if not again or again == "Wróć do menu":
+                        break
+                    if again == "Wymieszaj ponownie":
+                        break
+                    if again == "Pokaż tłumaczenia" and current_table:
+                        clearScreen()
+                        print("Kolejność jak po wymieszaniu:\n")
+                        print(format_translations_display(current_table))
+                        input("\nEnter...")
+                    if again == "Usuń element":
+                        if not current_table:
+                            input("Tablica pusta. Enter...")
+                            continue
+                        choices = [
+                            questionary.Choice(title=_row_to_display(r), value=i)
+                            for i, r in enumerate(current_table)
+                        ]
+                        to_remove = questionary.select("Który element usunąć?", choices=choices).ask()
+                        if to_remove is not None:
+                            current_table.pop(to_remove)
+                if again == "Wróć do menu":
+                    break
             continue
         if choice == "Nowa tablica":
             current_table = getInputTable()
