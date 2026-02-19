@@ -1,4 +1,4 @@
-"""Testy _table_display_words_only i _table_display_with_revealed (widok po wymieszaniu)."""
+"""Tests for _table_display_words_only and _table_display_with_revealed (shuffle view)."""
 import NeoAnki
 
 
@@ -22,7 +22,7 @@ def test_table_display_words_only_max_items():
 
 
 def test_table_display_with_revealed_empty():
-    assert NeoAnki._table_display_with_revealed([], 0) == "(pusta)"
+    assert NeoAnki._table_display_with_revealed([], 0) == "(empty)"
 
 
 def test_table_display_with_revealed_none_revealed():

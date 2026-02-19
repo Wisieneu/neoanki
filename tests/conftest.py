@@ -1,4 +1,4 @@
-"""Pytest fixtures: izolowany backup path na czas testów."""
+"""Pytest fixtures: isolated backup path for tests."""
 import pytest
 
 

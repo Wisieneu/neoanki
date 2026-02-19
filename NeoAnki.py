@@ -11,17 +11,17 @@ import questionary
 BACKUP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "neoanki_backup.json")
 BACKUP_BACKUP_PATH = BACKUP_PATH + ".bak"
 
-# ANSI: bold + kolor dla tytułów list w backupie
+# ANSI: bold + color for backup list titles
 _BOLD_CYAN = "\033[1m\033[36m"
 _RESET = "\033[0m"
 
-# Tablica = lista par (słowo, tłumaczenie). Tłumaczenie może być "".
+# Table = list of pairs (word, translation). Translation can be "".
 TableRow = tuple[str, str]
 Table = list[TableRow]
 
 
 def _row_to_display(row: TableRow | str) -> str:
-    """Akceptuje (word, trans) lub legacy: pojedynczy string (traktowany jako word bez tłumaczenia)."""
+    """Accepts (word, trans) or legacy: single string (treated as word without translation)."""
     if isinstance(row, str):
         return row
     w, t = row
@@ -34,15 +34,15 @@ def _table_display(table: Table, max_items: int | None = None) -> str:
 
 
 def _table_display_words_only(table: Table, max_items: int | None = None) -> str:
-    """Tylko wyrazy (bez tłumaczeń) — do widoku po wymieszaniu."""
+    """Words only (no translations) — for shuffle view."""
     part = table[:max_items] if max_items else table
     return ", ".join(r[0] for r in part) + ("..." if max_items and len(table) > max_items else "")
 
 
 def _table_display_with_revealed(table: Table, revealed: int) -> str:
-    """Numerowana lista: pierwsze `revealed` z tłumaczeniem, reszta tylko word."""
+    """Numbered list: first `revealed` with translation, rest word only."""
     if not table:
-        return "(pusta)"
+        return "(empty)"
     width = len(str(len(table)))
     lines = [
         f"  {i + 1:>{width}}. " + (_row_to_display(r) if i < revealed else r[0])
@@ -53,19 +53,19 @@ def _table_display_with_revealed(table: Table, revealed: int) -> str:
 
 
 def _print_backup_list(backup: dict[str, Table]) -> None:
-    """Wypisuje listę backupów: tytuł (pogrubiony, kolorowy), poniżej elementy tablicy."""
+    """Prints backup list: title (bold, colored), below table elements."""
     for name in sorted(backup.keys()):
         table = backup[name]
         print(f"{_BOLD_CYAN}{name}{_RESET}")
         for word, trans in table:
-            print(f"    {word}: {trans if trans else '(brak tłumaczenia)'}")
+            print(f"    {word}: {trans if trans else '(no translation)'}")
         print()
 
 
 def format_translations_display(table: Table) -> str:
-    """Zwraca tekst do wyświetlenia: każdy wiersz '  word: trans' lub '  word: (brak tłumaczenia)' w kolejności tablicy."""
+    """Returns display text: each row '  word: trans' or '  word: (no translation)' in table order."""
     lines = [
-        f"  {word}: {trans if trans else '(brak tłumaczenia)'}"
+        f"  {word}: {trans if trans else '(no translation)'}"
         for word, trans in table
     ]
     return "\n".join(lines)
@@ -80,7 +80,7 @@ def _parse_table_cell(cell: str) -> TableRow:
 
 
 def _validate_backup(data: object) -> dict[str, list[list[str]]] | None:
-    """Akceptuje dict: wartości to listy stringów (stary format) lub listy [word, trans]. Zwraca znormalizowane listy [word, trans]."""
+    """Accepts dict: values are lists of strings (old format) or lists [word, trans]. Returns normalized [word, trans] lists."""
     if not isinstance(data, dict):
         return None
     out: dict[str, list[list[str]]] = {}
@@ -108,7 +108,7 @@ def _table_to_backup(table: Table) -> list[list[str]]:
 
 
 def _validate_table(table: object) -> bool:
-    """Sprawdza, czy to Table (lista par (str, str))."""
+    """Checks if this is a Table (list of pairs (str, str))."""
     if not isinstance(table, list):
         return False
     for row in table:
@@ -131,8 +131,8 @@ def _read_backup_file(path: str) -> dict[str, list[list[str]]] | None:
 
 
 def load_backup() -> tuple[dict[str, Table], bool]:
-    """Wczytuje backup; przy uszkodzeniu głównego pliku próbuje .bak. Naprawia main z .bak jeśli trzeba.
-    Zwraca (dane, recovered_from_bak)."""
+    """Loads backup; if main file is corrupted tries .bak. Repairs main from .bak if needed.
+    Returns (data, recovered_from_bak)."""
     main_data = _read_backup_file(BACKUP_PATH)
     if main_data is not None:
         return {k: _backup_to_table(v) for k, v in main_data.items()}, False
@@ -148,15 +148,15 @@ def load_backup() -> tuple[dict[str, Table], bool]:
 
 
 def save_backup(boards: dict[str, Table]) -> None:
-    """Zapisuje backup: najpierw kopia main→.bak, potem zapis do main (przez plik tymczasowy)."""
+    """Saves backup: first copy main→.bak, then save to main (via temp file)."""
     if not isinstance(boards, dict):
-        raise ValueError("Nieprawidłowa struktura backupu")
+        raise ValueError("Invalid backup structure")
     for k, v in boards.items():
         if not isinstance(k, str) or not _validate_table(v):
-            raise ValueError("Nieprawidłowa struktura backupu")
+            raise ValueError("Invalid backup structure")
     serialized = {k: _table_to_backup(v) for k, v in boards.items()}
     if _validate_backup(serialized) is None:
-        raise ValueError("Nieprawidłowa struktura backupu")
+        raise ValueError("Invalid backup structure")
     if os.path.exists(BACKUP_PATH):
         try:
             with open(BACKUP_PATH, "r", encoding="utf-8") as f:
@@ -179,26 +179,26 @@ def save_backup(boards: dict[str, Table]) -> None:
 
 
 def _confirm_table(table: Table) -> bool:
-    """Pokazuje tablicę i pyta o zatwierdzenie. Zwraca True jeśli użytkownik zatwierdza."""
+    """Shows table and asks for confirmation. Returns True if user confirms."""
     if not table:
         return False
     clearScreen()
-    print("Tablica:\n")
+    print("Table:\n")
     print(_table_display_with_revealed(table, len(table)))
     print()
-    return questionary.select("Zatwierdzić tablicę?", choices=["Tak", "Nie"]).ask() == "Tak"
+    return questionary.select("Confirm table?", choices=["Yes", "No"]).ask() == "Yes"
 
 
 def getInputTableSingle() -> Table:
-    """Dodawanie słów pojedynczo (słowo + Enter). Pusty Enter = koniec. Na końcu zatwierdzenie."""
+    """Add words one by one (word + Enter). Empty Enter = finish. Confirmation at the end."""
     table: Table = []
     while True:
         clearScreen()
         if table:
-            print(f"Liczba słów: {len(table)}\nDodaj puste słowo by zakończyć")
+            print(f"Word count: {len(table)}\nAdd empty word to finish")
             print(_table_display_with_revealed(table, len(table)))
             print()
-        prompt = "Słowo|tłumaczenie (pusty Enter = koniec): "
+        prompt = "Word|translation (empty Enter = finish): "
         line = input(prompt).strip()
         if not line:
             break
@@ -209,24 +209,24 @@ def getInputTableSingle() -> Table:
 
 
 def getInputTableAllAtOnce() -> Table:
-    """Wszystkie elementy naraz (oddzielone przecinkami). Na końcu zatwierdzenie."""
+    """All elements at once (comma-separated). Confirmation at the end."""
     clearScreen()
-    prompt = "Wpisz elementy (element|tłumaczenie oddzielone przecinkiem)\nPrzykład: slowo|tlumaczenie,slowo1|tlumaczenie1,slowo2,slowo3|tlum3\nTłumaczenia są opcjonalne\n"
+    prompt = "Enter elements (element|translation separated by comma)\nExample: word|translation,word1|translation1,word2,word3|trans3\nTranslations are optional\n"
     raw = input(prompt)
     table = [_parse_table_cell(cell) for cell in raw.split(",") if cell.strip()]
     return table if _confirm_table(table) else []
 
 
 def getInputTable() -> Table:
-    """Pyta o tryb (pojedynczo / wszystko naraz) i zwraca tablicę po zatwierdzeniu."""
+    """Asks for mode (one by one / all at once) and returns table after confirmation."""
     clearScreen()
     mode = questionary.select(
-        "Jak dodawać słowa?",
-        choices=["Pojedynczo (słowo po słowie)", "Wszystko naraz (oddzielone przecinkami)"],
+        "How to add words?",
+        choices=["One by one (word by word)", "All at once (comma-separated)"],
     ).ask()
     if not mode:
         return []
-    if mode == "Pojedynczo (słowo po słowie)":
+    if mode == "One by one (word by word)":
         return getInputTableSingle()
     return getInputTableAllAtOnce()
 
@@ -247,40 +247,40 @@ def backup_submenu(
     used_boards: dict[str, Table],
 ) -> tuple[Table, str | None, dict[str, Table]]:
     clearScreen()
-    label = f"Obecna tablica: {current_name or '(bez nazwy)'}"
+    label = f"Current table: {current_name or '(unnamed)'}"
     print(label)
-    print(_table_display(current_table) if current_table else "(pusta)")
+    print(_table_display(current_table) if current_table else "(empty)")
     print()
     choice = questionary.select(
         "Backup:",
-        choices=["Wyciągnij tablicę", "Zapisz obecną", "Edytuj tablicę", "Usuń nieużywane", "Wstecz"],
+        choices=["Load table", "Save current", "Edit table", "Delete tables", "Back"],
     ).ask()
-    if not choice or choice == "Wstecz":
+    if not choice or choice == "Back":
         return current_table, current_name, used_boards
 
-    if choice == "Wyciągnij tablicę":
+    if choice == "Load table":
         backup, _ = load_backup()
         if not backup:
             clearScreen()
-            input("Brak zapisanych tablic. Enter...")
+            input("No saved tables. Enter...")
             return current_table, current_name, used_boards
         clearScreen()
         _print_backup_list(backup)
-        name = questionary.select("Którą tablicę wyciągnąć?", choices=sorted(backup.keys())).ask()
+        name = questionary.select("Which table to load?", choices=sorted(backup.keys())).ask()
         if name:
             used_boards[name] = backup[name]
             return backup[name], name, used_boards
 
-    if choice == "Zapisz obecną":
+    if choice == "Save current":
         backup, _ = load_backup()
         clearScreen()
         _print_backup_list(backup)
-        choices_save = ["[nowa tablica]"] + sorted(backup.keys())
-        target = questionary.select("Zapisz jako (nowa lub nadpisz wybraną):", choices=choices_save).ask()
+        choices_save = ["[new table]"] + sorted(backup.keys())
+        target = questionary.select("Save as (new or overwrite selected):", choices=choices_save).ask()
         if not target:
             return current_table, current_name, used_boards
-        if target == "[nowa tablica]":
-            base = questionary.text("Nazwa tablicy (opcjonalnie):").ask()
+        if target == "[new table]":
+            base = questionary.text("Table name (optional):").ask()
             stamp = datetime.now().strftime("%Y-%m-%d %H-%M")
             name = f"{base} {stamp}".strip() if base else stamp
             if name:
@@ -295,18 +295,18 @@ def backup_submenu(
             save_backup(backup)
             used_boards[name] = current_table
             clearScreen()
-            input(f"Nadpisano: {name}. Enter...")
+            input(f"Overwritten: {name}. Enter...")
             return current_table, name, used_boards
 
-    if choice == "Edytuj tablicę":
+    if choice == "Edit table":
         backup, _ = load_backup()
         if not backup:
             clearScreen()
-            input("Brak zapisanych tablic. Enter...")
+            input("No saved tables. Enter...")
             return current_table, current_name, used_boards
         clearScreen()
         _print_backup_list(backup)
-        name = questionary.select("Którą tablicę edytować?", choices=sorted(backup.keys())).ask()
+        name = questionary.select("Which table to edit?", choices=sorted(backup.keys())).ask()
         if not name:
             return current_table, current_name, used_boards
         with tempfile.NamedTemporaryFile(
@@ -329,39 +329,39 @@ def backup_submenu(
         if name in used_boards:
             used_boards[name] = new_table
         clearScreen()
-        input(f"Zapisano: {name}. Enter...")
+        input(f"Saved: {name}. Enter...")
 
-    if choice == "Usuń nieużywane":
+    if choice == "Delete tables":
         backup, _ = load_backup()
         if not backup:
             clearScreen()
-            input("Brak zapisanych tablic. Enter...")
+            input("No saved tables. Enter...")
             return current_table, current_name, used_boards
         clearScreen()
         _print_backup_list(backup)
-        print("Zaznacz: Spacja. Potwierdź: Enter. Aby wrócić bez usuwania: nie zaznaczaj nic i Enter.")
+        print("Select: Space. Confirm: Enter. To go back without deleting: select nothing and Enter.")
         print()
         choices = [
             questionary.Choice(title=f"{k} | {_table_display(backup[k], 8)}", value=k)
             for k in sorted(backup.keys())
         ]
-        selected = questionary.checkbox("Które tablice usunąć?", choices=choices).ask()
+        selected = questionary.checkbox("Which tables to delete?", choices=choices).ask()
         if selected is None:
             return current_table, current_name, used_boards
         if not selected:
             clearScreen()
-            input("Anulowano (nic nie usunięto). Enter...")
+            input("Cancelled (nothing deleted). Enter...")
             return current_table, current_name, used_boards
         confirm = questionary.select(
-            f"Usunąć {len(selected)} tablic z backupu?",
-            choices=["Tak, usuń", "Nie, wróć"],
+            f"Delete {len(selected)} table(s) from backup?",
+            choices=["Yes, delete", "No, go back"],
         ).ask()
-        if confirm == "Tak, usuń":
+        if confirm == "Yes, delete":
             for k in selected:
                 del backup[k]
             save_backup(backup)
             clearScreen()
-            input(f"Usunięto z backupu: {', '.join(selected)}. Enter...")
+            input(f"Deleted from backup: {', '.join(selected)}. Enter...")
 
     return current_table, current_name, used_boards
 
@@ -370,27 +370,27 @@ def main() -> None:
     clearScreen()
     _, recovered = load_backup()
     if recovered:
-        print("Odzyskano backup z pliku .bak (główny plik był uszkodzony).")
+        print("Recovered backup from .bak file (main file was corrupted).")
         input("Enter...")
         clearScreen()
     start = questionary.select(
-        "Co chcesz zrobić?",
-        choices=["Wpisz tablicę", "Wyciągnij tablicę z backupu", "Przejdź do menu"],
+        "What do you want to do?",
+        choices=["Enter table", "Load table from backup", "Go to menu"],
     ).ask()
-    if start == "Wpisz tablicę":
+    if start == "Enter table":
         current_table = getInputTable()
         current_name = None
-    elif start == "Wyciągnij tablicę z backupu":
+    elif start == "Load table from backup":
         backup, _ = load_backup()
         if not backup:
             clearScreen()
-            input("Brak zapisanych tablic. Enter...")
+            input("No saved tables. Enter...")
             current_table = []
             current_name = None
         else:
             clearScreen()
             _print_backup_list(backup)
-            name = questionary.select("Którą tablicę wyciągnąć?", choices=sorted(backup.keys())).ask()
+            name = questionary.select("Which table to load?", choices=sorted(backup.keys())).ask()
             if name:
                 current_table = backup[name]
                 current_name = name
@@ -406,13 +406,13 @@ def main() -> None:
 
     while True:
         clearScreen()
-        menu_choices = ["Nowa tablica", "Backup", "Wyjście"]
+        menu_choices = ["New table", "Backup", "Exit"]
         if current_table:
-            menu_choices.insert(0, "Wymieszaj")
-        choice = questionary.select("Wybierz:", choices=menu_choices).ask()
-        if not choice or choice == "Wyjście":
+            menu_choices.insert(0, "Shuffle")
+        choice = questionary.select("Choose:", choices=menu_choices).ask()
+        if not choice or choice == "Exit":
             return
-        if choice == "Wymieszaj":
+        if choice == "Shuffle":
             while True:
                 current_table = getShuffledTable(current_table)
                 revealed_count = 0
@@ -420,40 +420,40 @@ def main() -> None:
                     clearScreen()
                     print(_table_display_with_revealed(current_table, revealed_count))
                     if revealed_count < len(current_table):
-                        choices_list = ["Przetłumacz wszystko", "Wymieszaj ponownie", "Usuń element", "Wróć do menu"]
-                        choices_list.insert(0, "Przetłumacz kolejne słowo")
+                        choices_list = ["Show all translations", "Shuffle again", "Remove element", "Back to menu"]
+                        choices_list.insert(0, "Show next translation")
                     else:
-                        choices_list = ["Wymieszaj ponownie", "Przetłumacz wszystko", "Usuń element", "Wróć do menu"]
-                    again = questionary.select("\nCo dalej?", choices=choices_list).ask()
-                    if not again or again == "Wróć do menu":
+                        choices_list = ["Shuffle again", "Show all translations", "Remove element", "Back to menu"]
+                    again = questionary.select("\nWhat next?", choices=choices_list).ask()
+                    if not again or again == "Back to menu":
                         break
-                    if again == "Wymieszaj ponownie":
+                    if again == "Shuffle again":
                         break
-                    if again == "Przetłumacz kolejne słowo":
+                    if again == "Show next translation":
                         if revealed_count < len(current_table):
                             revealed_count += 1
                         continue
-                    if again == "Przetłumacz wszystko" and current_table:
+                    if again == "Show all translations" and current_table:
                         clearScreen()
-                        print("Kolejność jak po wymieszaniu:\n")
+                        print("Order as after shuffle:\n")
                         print(format_translations_display(current_table))
                         input("\nEnter...")
-                    if again == "Usuń element":
+                    if again == "Remove element":
                         if not current_table:
-                            input("Tablica pusta. Enter...")
+                            input("Table empty. Enter...")
                             continue
                         choices = [
                             questionary.Choice(title=_row_to_display(r), value=i)
                             for i, r in enumerate(current_table)
-                        ] + [questionary.Choice(title="Anuluj", value=None)]
-                        to_remove = questionary.select("Który element usunąć?", choices=choices).ask()
+                        ] + [questionary.Choice(title="Cancel", value=None)]
+                        to_remove = questionary.select("Which element to remove?", choices=choices).ask()
                         if to_remove is not None:
                             current_table.pop(to_remove)
                             revealed_count = min(revealed_count, len(current_table))
-                if again == "Wróć do menu":
+                if again == "Back to menu":
                     break
             continue
-        if choice == "Nowa tablica":
+        if choice == "New table":
             current_table = getInputTable()
             current_name = None
             continue

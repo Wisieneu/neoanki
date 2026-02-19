@@ -1,4 +1,4 @@
-"""Testy jednostkowe backup_submenu z zamockowanym questionary."""
+"""Unit tests for backup_submenu with mocked questionary."""
 import NeoAnki
 
 
@@ -7,7 +7,7 @@ def test_backup_submenu_wstecz_returns_unchanged(monkeypatch):
     monkeypatch.setattr(
         NeoAnki.questionary,
         "select",
-        lambda *a, **k: type("Q", (), {"ask": lambda _: "Wstecz"})(),
+        lambda *a, **k: type("Q", (), {"ask": lambda _: "Back"})(),
     )
     table, name, used = NeoAnki.backup_submenu(
         [("x", "")], "old", {"old": [("x", "")]}
@@ -27,9 +27,9 @@ def test_backup_submenu_zapisz_obecna_persists(monkeypatch, backup_path):
                 nonlocal call_count
                 call_count += 1
                 if call_count == 1:
-                    return "Zapisz obecną"
+                    return "Save current"
                 if call_count == 2:
-                    return "[nowa tablica]"
+                    return "[new table]"
                 return None
         return Q()
     def fake_text(*a, **k):
@@ -60,7 +60,7 @@ def test_backup_submenu_zapisz_nadpisuje(monkeypatch, backup_path):
                 nonlocal call_count
                 call_count += 1
                 if call_count == 1:
-                    return "Zapisz obecną"
+                    return "Save current"
                 if call_count == 2:
                     return "stara"
                 return None
@@ -82,7 +82,7 @@ def test_backup_submenu_wyciagnij_tablice(monkeypatch, backup_path):
             def ask(_, _self=None):
                 nonlocal call_count
                 call_count += 1
-                return "Wyciągnij tablicę" if call_count == 1 else "saved"
+                return "Load table" if call_count == 1 else "saved"
         return Q()
     monkeypatch.setattr(NeoAnki.questionary, "select", fake_select)
 
@@ -107,9 +107,9 @@ def test_backup_submenu_usun_nieuzywane(monkeypatch, backup_path):
                 nonlocal call_count
                 call_count += 1
                 if call_count == 1:
-                    return "Usuń nieużywane"
+                    return "Delete tables"
                 if call_count == 2:
-                    return "Tak, usuń"
+                    return "Yes, delete"
                 return None
         return Q()
     def fake_checkbox(*a, **k):
@@ -137,7 +137,7 @@ def test_backup_submenu_edytuj_tablice(monkeypatch, backup_path):
             def ask(_, _self=None):
                 nonlocal call_count
                 call_count += 1
-                return "Edytuj tablicę" if call_count == 1 else "tab1"
+                return "Edit table" if call_count == 1 else "tab1"
         return Q()
     def fake_run(args, **kwargs):
         from pathlib import Path

@@ -1,4 +1,4 @@
-"""Testy _print_backup_list (alfabetyczna kolejność, tytuł + elementy)."""
+"""Tests for _print_backup_list (alphabetical order, title + elements)."""
 import NeoAnki
 
 
@@ -26,11 +26,11 @@ def test_print_backup_list_contains_titles_and_elements(capsys):
     assert "tłum" in out
 
 
-def test_print_backup_list_brak_tlumaczenia(capsys):
+def test_print_backup_list_no_translation(capsys):
     backup = {"X": [("w", "")]}
     NeoAnki._print_backup_list(backup)
     out = capsys.readouterr().out
-    assert "(brak tłumaczenia)" in out
+    assert "(no translation)" in out
 
 
 def test_print_backup_list_empty_dict(capsys):

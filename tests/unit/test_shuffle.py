@@ -1,4 +1,4 @@
-"""Testy jednostkowe getShuffledTable."""
+"""Unit tests for getShuffledTable."""
 import NeoAnki
 
 
