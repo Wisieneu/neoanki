@@ -375,11 +375,34 @@ def main() -> None:
         clearScreen()
     start = questionary.select(
         "Co chcesz zrobić?",
-        choices=["Wpisz tablicę", "Przejdź do menu"],
+        choices=["Wpisz tablicę", "Wyciągnij tablicę z backupu", "Przejdź do menu"],
     ).ask()
-    current_table = getInputTable() if start == "Wpisz tablicę" else []
-    current_name: str | None = None
+    if start == "Wpisz tablicę":
+        current_table = getInputTable()
+        current_name = None
+    elif start == "Wyciągnij tablicę z backupu":
+        backup, _ = load_backup()
+        if not backup:
+            clearScreen()
+            input("Brak zapisanych tablic. Enter...")
+            current_table = []
+            current_name = None
+        else:
+            clearScreen()
+            _print_backup_list(backup)
+            name = questionary.select("Którą tablicę wyciągnąć?", choices=sorted(backup.keys())).ask()
+            if name:
+                current_table = backup[name]
+                current_name = name
+            else:
+                current_table = []
+                current_name = None
+    else:
+        current_table = []
+        current_name = None
     used_boards: dict[str, Table] = {}
+    if current_name:
+        used_boards[current_name] = current_table
 
     while True:
         clearScreen()
