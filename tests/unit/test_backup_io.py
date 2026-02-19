@@ -1,4 +1,4 @@
-"""Testy jednostkowe load_backup / save_backup."""
+"""Unit tests for load_backup / save_backup."""
 import json
 
 import pytest
@@ -53,7 +53,7 @@ def test_load_backup_recovery_from_bak(backup_path):
 
 
 def test_load_backup_invalid_structure_main_tries_bak(backup_path):
-    """Główny plik ma poprawny JSON ale złą strukturę → uznane za uszkodzone, próba .bak."""
+    """Main file has valid JSON but wrong structure → treated as corrupted, tries .bak."""
     backup_path.write_text('{"tab": 123}', encoding="utf-8")
     bak_path = backup_path.with_suffix(backup_path.suffix + ".bak")
     bak_path.write_text(json.dumps({"ok": [["a", ""]]}), encoding="utf-8")
@@ -63,17 +63,17 @@ def test_load_backup_invalid_structure_main_tries_bak(backup_path):
 
 
 def test_save_backup_rejects_invalid_structure(backup_path):
-    """save_backup z nieprawidłową strukturą (wartości nie Table: list of (str, str)) rzuca ValueError."""
-    with pytest.raises(ValueError, match="Nieprawidłowa struktura"):
+    """save_backup with invalid structure (values not Table: list of (str, str)) raises ValueError."""
+    with pytest.raises(ValueError, match="Invalid backup structure"):
         NeoAnki.save_backup({"k": [(1, "x")]})
-    with pytest.raises(ValueError, match="Nieprawidłowa struktura"):
+    with pytest.raises(ValueError, match="Invalid backup structure"):
         NeoAnki.save_backup("not a dict")
-    with pytest.raises(ValueError, match="Nieprawidłowa struktura"):
+    with pytest.raises(ValueError, match="Invalid backup structure"):
         NeoAnki.save_backup({"k": [("a", "b", "c")]})
 
 
 def test_save_backup_creates_bak(backup_path):
-    """Po drugim zapisie .bak zawiera stan sprzed ostatniego zapisu."""
+    """After second save .bak contains state before last save."""
     NeoAnki.save_backup({"first": [("a", "")]})
     NeoAnki.save_backup({"second": [("b", "")]})
     bak_path = backup_path.with_suffix(backup_path.suffix + ".bak")
