@@ -303,18 +303,31 @@ def backup_submenu(
 
     if choice == "Usuń nieużywane":
         backup, _ = load_backup()
-        used_names = set(used_boards.keys())
-        to_remove_keys = [k for k in backup if k not in used_names]
-        if not to_remove_keys:
+        if not backup:
             clearScreen()
-            input("Wszystkie zapisane tablice są używane. Enter...")
+            input("Brak zapisanych tablic. Enter...")
             return current_table, current_name, used_boards
+        clearScreen()
+        print("Wszystkie zapisane tablice (zaznacz te do usunięcia):")
+        print()
+        print("  Zaznacz: Spacja. Potwierdź: Enter. Aby wrócić bez usuwania: nie zaznaczaj nic i Enter.")
+        print()
         choices = [
             questionary.Choice(title=f"{k} | {_table_display(backup[k], 8)}", value=k)
-            for k in to_remove_keys
+            for k in backup
         ]
         selected = questionary.checkbox("Które tablice usunąć?", choices=choices).ask()
-        if selected:
+        if selected is None:
+            return current_table, current_name, used_boards
+        if not selected:
+            clearScreen()
+            input("Anulowano (nic nie usunięto). Enter...")
+            return current_table, current_name, used_boards
+        confirm = questionary.select(
+            f"Usunąć {len(selected)} tablic z backupu?",
+            choices=["Tak, usuń", "Nie, wróć"],
+        ).ask()
+        if confirm == "Tak, usuń":
             for k in selected:
                 del backup[k]
             save_backup(backup)
