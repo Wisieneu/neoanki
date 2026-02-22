@@ -420,10 +420,10 @@ def main() -> None:
                     clearScreen()
                     print(_table_display_with_revealed(current_table, revealed_count))
                     if revealed_count < len(current_table):
-                        choices_list = ["Show all translations", "Shuffle again", "Remove element", "Back to menu"]
+                        choices_list = ["Show all translations", "Shuffle again", "Add element", "Remove element", "Back to menu"]
                         choices_list.insert(0, "Show next translation")
                     else:
-                        choices_list = ["Shuffle again", "Show all translations", "Remove element", "Back to menu"]
+                        choices_list = ["Shuffle again", "Show all translations", "Add element", "Remove element", "Back to menu"]
                     again = questionary.select("\nWhat next?", choices=choices_list).ask()
                     if not again or again == "Back to menu":
                         break
@@ -438,6 +438,10 @@ def main() -> None:
                         print("Order as after shuffle:\n")
                         print(format_translations_display(current_table))
                         input("\nEnter...")
+                    if again == "Add element":
+                        new_row = questionary.text("Word|translation (empty = cancel):").ask()
+                        if new_row and new_row.strip():
+                            current_table.append(_parse_table_cell(new_row.strip()))
                     if again == "Remove element":
                         if not current_table:
                             input("Table empty. Enter...")
