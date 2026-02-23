@@ -121,3 +121,24 @@ def test_main_to_repeat_auto_backup(monkeypatch, backup_path):
     tables, to_repeat, _ = NeoAnki.load_backup()
     assert "mytable" in to_repeat
     assert to_repeat["mytable"] == [("word1", "t1")]
+
+
+def test_main_recovery_from_bak_shows_message(capsys, monkeypatch, backup_path):
+    """When main file is corrupted and .bak exists, main() shows recovery message and continues."""
+    backup_path.write_text("not json", encoding="utf-8")
+    bak_path = backup_path.with_suffix(backup_path.suffix + ".bak")
+    bak_path.write_text(json.dumps({"x": [["y", ""]]}), encoding="utf-8")
+    monkeypatch.setattr(NeoAnki, "clearScreen", lambda: None)
+    monkeypatch.setattr("builtins.input", lambda _: None)
+    monkeypatch.setattr(
+        NeoAnki.questionary,
+        "select",
+        _make_select_mock(["Go to menu", "Exit"]),
+    )
+
+    NeoAnki.main()
+
+    out = capsys.readouterr().out
+    assert "Recovered" in out or "recovered" in out or ".bak" in out
+    tables, _, _ = NeoAnki.load_backup()
+    assert tables == {"x": [("y", "")]}

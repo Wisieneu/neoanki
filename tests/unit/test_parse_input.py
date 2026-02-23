@@ -87,3 +87,11 @@ def test_get_input_table_delegates_to_all_at_once(monkeypatch):
     monkeypatch.setattr(NeoAnki, "getInputTableAllAtOnce", lambda: [("n", "N")])
     result = NeoAnki.getInputTable()
     assert result == [("n", "N")]
+
+
+def test_get_input_table_none_returns_empty(monkeypatch):
+    """User cancels mode selection (None) -> returns []."""
+    monkeypatch.setattr(NeoAnki, "clearScreen", lambda: None)
+    monkeypatch.setattr(NeoAnki.questionary, "select", lambda *a, **k: type("Q", (), {"ask": lambda _: None})())
+    result = NeoAnki.getInputTable()
+    assert result == []

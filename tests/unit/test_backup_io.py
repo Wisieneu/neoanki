@@ -115,6 +115,18 @@ def test_load_backup_legacy_returns_empty_to_repeat(backup_path):
     assert to_repeat == {}
 
 
+def test_load_backup_legacy_root_tables_and_to_repeat(backup_path):
+    """Legacy format with root 'tables' and 'to_repeat' keys loads both."""
+    payload = {
+        "tables": {"b1": [["a", "A"], ["b", ""]], "b2": [["x", "X"]]},
+        "to_repeat": {"b1": [["a", "A"]], "b2": []},
+    }
+    backup_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    tables, to_repeat, _ = NeoAnki.load_backup()
+    assert tables == {"b1": [("a", "A"), ("b", "")], "b2": [("x", "X")]}
+    assert to_repeat == {"b1": [("a", "A")], "b2": []}
+
+
 def test_save_backup_preserves_to_repeat_when_none_passed(backup_path):
     """save_backup(boards) without to_repeat keeps existing to_repeat from file."""
     NeoAnki.save_backup({"k": [("a", "")]}, {"k": [("a", "")]})
@@ -130,3 +142,29 @@ def test_parse_backup_data_invalid_to_repeat_returns_empty(backup_path):
     tables, to_repeat, _ = NeoAnki.load_backup()
     assert tables == {"b": [("x", "")]}
     assert to_repeat.get("b") == []
+
+
+def test_validate_table_valid():
+    assert NeoAnki._validate_table([("a", ""), ("b", "B")]) is True
+    assert NeoAnki._validate_table([]) is True
+
+
+def test_validate_table_invalid():
+    assert NeoAnki._validate_table([("a", "b", "c")]) is False
+    assert NeoAnki._validate_table([(1, "x")]) is False
+    assert NeoAnki._validate_table("not a list") is False
+    assert NeoAnki._validate_table([["a"]]) is False
+
+
+def test_parse_board_row_list_legacy_strings():
+    """Legacy list of strings -> list of (word, '')."""
+    assert NeoAnki._parse_board_row_list(["x", "y"]) == [("x", ""), ("y", "")]
+
+
+def test_parse_board_row_list_pairs():
+    assert NeoAnki._parse_board_row_list([["a", "A"], ["b", ""]]) == [("a", "A"), ("b", "")]
+
+
+def test_parse_board_row_list_invalid_returns_none():
+    assert NeoAnki._parse_board_row_list("not list") is None
+    assert NeoAnki._parse_board_row_list([["a", "b", "c"]]) is None

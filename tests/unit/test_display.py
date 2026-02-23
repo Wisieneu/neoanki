@@ -1,5 +1,15 @@
-"""Tests for _table_display, _table_display_words_only and _table_display_with_revealed."""
+"""Tests for _row_to_display, _table_display, _table_display_words_only and _table_display_with_revealed."""
 import NeoAnki
+
+
+def test_row_to_display_tuple():
+    assert NeoAnki._row_to_display(("w", "t")) == "w (t)"
+    assert NeoAnki._row_to_display(("x", "")) == "x"
+
+
+def test_row_to_display_legacy_string():
+    """Legacy: single string treated as word without translation."""
+    assert NeoAnki._row_to_display("word") == "word"
 
 
 def test_table_display_includes_translations():

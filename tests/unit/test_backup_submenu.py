@@ -153,3 +153,37 @@ def test_backup_submenu_edytuj_tablice(monkeypatch, backup_path):
     assert backup["tab1"] == [("z", "zł"), ("y", "yy")]
     assert table == [("z", "zł"), ("y", "yy")]
     assert used["tab1"] == [("z", "zł"), ("y", "yy")]
+
+
+def test_backup_submenu_save_persists_session_to_repeat(monkeypatch, backup_path):
+    """Save current (new or overwrite) with session_to_repeat persists to_repeat in backup."""
+    monkeypatch.setattr(NeoAnki, "clearScreen", lambda: None)
+    monkeypatch.setattr("builtins.input", lambda _: None)
+    monkeypatch.setattr(NeoAnki, "datetime", type("dt", (), {"now": lambda: type("t", (), {"strftime": lambda s, fmt: "2025-01-01 12-00"})()}))
+    call_count = 0
+    def fake_select(*a, **k):
+        class Q:
+            def ask(_, _self=None):
+                nonlocal call_count
+                call_count += 1
+                if call_count == 1:
+                    return "Save current"
+                if call_count == 2:
+                    return "[new table]"
+                return None
+        return Q()
+    monkeypatch.setattr(NeoAnki.questionary, "select", fake_select)
+    def fake_text(*a, **k):
+        class T:
+            def ask(_, _self=None):
+                return ""
+        return T()
+    monkeypatch.setattr(NeoAnki.questionary, "text", fake_text)
+
+    table = [("a", "A"), ("b", "B")]
+    to_repeat_rows = [("a", "A")]
+    NeoAnki.backup_submenu(table, None, {}, session_to_repeat=to_repeat_rows)
+
+    _, to_repeat, _ = NeoAnki.load_backup()
+    assert len(to_repeat) == 1
+    assert list(to_repeat.values())[0] == [("a", "A")]
